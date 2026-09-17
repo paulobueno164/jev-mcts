@@ -1,0 +1,43 @@
+{
+  "name": "cobrir-args",
+  "goal": "Cobrir src/cli/args.ts com um teste de unidade, sem tocar em nenhum outro arquivo",
+  "budgetMs": 1800000,
+  "stepCap": 6,
+  "maxAttemptsPerStep": 2,
+  "probes": [
+    {
+      "id": "existe",
+      "label": "test/args.test.ts existe",
+      "command": "node",
+      "args": ["-e", "process.exit(require('node:fs').existsSync('test/args.test.ts')?0:1)"],
+      "timeoutMs": 30000
+    },
+    {
+      "id": "typecheck",
+      "label": "tsc -p tsconfig.json --noEmit",
+      "command": "npx",
+      "args": ["tsc", "-p", "tsconfig.json", "--noEmit"],
+      "timeoutMs": 300000
+    },
+    {
+      "id": "tests",
+      "label": "vitest run",
+      "command": "npx",
+      "args": ["vitest", "run"],
+      "timeoutMs": 300000
+    }
+  ],
+  "goalMilestones": ["coberto"],
+  "goalProbes": ["existe", "typecheck", "tests"],
+  "steps": [
+    {
+      "key": "cobrir-args",
+      "label": "Escrever test/args.test.ts cobrindo o parser de argumentos",
+      "risk": "reversible",
+      "yields": "coberto",
+      "verify": ["existe", "typecheck", "tests"],
+      "timeoutMs": 600000,
+      "prompt": "Objetivo: {goal}\n\nCrie o arquivo test/args.test.ts e NAO altere nenhum outro arquivo do repositorio.\n\nO alvo e `parseArgs` em src/cli/args.ts. Leia o arquivo primeiro. Escreva testes de unidade em vitest (`import { describe, expect, it } from 'vitest'`) cobrindo pelo menos: --flag solta, --chave valor, --chave=valor, posicionais, str() e num() com fallback, num() com valor nao numerico, e has(). Siga o estilo dos testes que ja existem em test/: nomes de teste em portugues, descrevendo o comportamento e nao o metodo.\n\nO projeto usa ESM com verbatimModuleSyntax: importe de '../src/cli/args.js' (com .js).\n\nPara valer, estes tres comandos precisam sair com codigo 0:\n  node -e \"process.exit(require('node:fs').existsSync('test/args.test.ts')?0:1)\"\n  npx tsc -p tsconfig.json --noEmit\n  npx vitest run\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    }
+  ]
+}

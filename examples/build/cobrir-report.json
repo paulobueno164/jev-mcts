@@ -1,0 +1,64 @@
+{
+  "name": "cobrir-report",
+  "goal": "Cobrir src/report.ts com testes de unidade, sem tocar em nenhum outro arquivo",
+  "budgetMs": 1800000,
+  "stepCap": 6,
+  "maxAttemptsPerStep": 2,
+  "probes": [
+    {
+      "id": "existe",
+      "label": "test/report.test.ts existe",
+      "command": "node",
+      "args": [
+        "-e",
+        "process.exit(require('node:fs').existsSync('test/report.test.ts')?0:1)"
+      ],
+      "timeoutMs": 30000
+    },
+    {
+      "id": "typecheck",
+      "label": "tsc -p tsconfig.json --noEmit",
+      "command": "npx",
+      "args": [
+        "tsc",
+        "-p",
+        "tsconfig.json",
+        "--noEmit"
+      ],
+      "timeoutMs": 300000
+    },
+    {
+      "id": "tests",
+      "label": "vitest run",
+      "command": "npx",
+      "args": [
+        "vitest",
+        "run"
+      ],
+      "timeoutMs": 300000
+    }
+  ],
+  "goalMilestones": [
+    "coberto"
+  ],
+  "goalProbes": [
+    "existe",
+    "typecheck",
+    "tests"
+  ],
+  "steps": [
+    {
+      "key": "cobrir-report",
+      "label": "Escrever test/report.test.ts cobrindo formatRun e a linha de procedencia",
+      "risk": "reversible",
+      "yields": "coberto",
+      "verify": [
+        "existe",
+        "typecheck",
+        "tests"
+      ],
+      "timeoutMs": 900000,
+      "prompt": "Objetivo: {goal}\n\nCrie o arquivo test/report.test.ts e NAO altere nenhum outro arquivo do repositorio.\n\nO alvo e `formatRun` em src/report.ts. Leia src/report.ts, leia o tipo RunResult em src/orchestration/orchestrator.ts e o tipo Decision em src/core/types.ts antes de escrever qualquer coisa. Olhe test/gates.test.ts para ver como o repositorio monta objetos desses tipos a mao.\n\nA regra que este modulo existe para garantir esta no CLAUDE.md, secao 6: o relatorio nao pode deixar quem le supor que algo foi MEDIDO quando foi ESTIMADO. Os testes mais importantes sao os que quebrariam se essa regra fosse violada. Cubra pelo menos:\n  - decisao com todas as folhas medidas: a linha de procedencia traz numerador == denominador\n  - decisao com zero folhas medidas: a linha diz explicitamente que nada foi executado\n  - decisao mista: numerador E denominador aparecem, nunca so um rotulo\n  - busca sem nenhuma folha avaliada (todos os valueSources zerados)\n  - rodape: contagem de autonomas / escaladas / recusadas, e a linha de folhas\n  - o aviso de calibracao ausente aparece quando calibrated e false\n  - o aviso de ambiente speculative aparece quando fidelity e speculative\n\nUse vitest (`import { describe, expect, it } from 'vitest'`). O projeto usa ESM com verbatimModuleSyntax e exactOptionalPropertyTypes: importe de '../src/report.js' (com .js) e tome cuidado com propriedades opcionais. Nomes de teste em portugues, descrevendo o comportamento e nao o metodo, como nos outros arquivos de test/.\n\nPara valer, estes tres comandos precisam sair com codigo 0:\n  node -e \"process.exit(require('node:fs').existsSync('test/report.test.ts')?0:1)\"\n  npx tsc -p tsconfig.json --noEmit\n  npx vitest run\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    }
+  ]
+}

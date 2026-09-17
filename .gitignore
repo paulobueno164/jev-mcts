@@ -1,0 +1,7 @@
+node_modules/
+dist/
+runs/
+.env
+.env.local
+*.tsbuildinfo
+data/calibration.json

@@ -1,0 +1,42 @@
+{
+  "name": "selfcheck",
+  "goal": "Confirmar por medicao que este repositorio compila e passa na suite",
+  "budgetMs": 900000,
+  "stepCap": 6,
+  "maxAttemptsPerStep": 2,
+  "probes": [
+    {
+      "id": "typecheck",
+      "label": "tsc -p tsconfig.json --noEmit",
+      "command": "npx",
+      "args": ["tsc", "-p", "tsconfig.json", "--noEmit"],
+      "timeoutMs": 300000
+    },
+    {
+      "id": "tests",
+      "label": "vitest run",
+      "command": "npx",
+      "args": ["vitest", "run"],
+      "timeoutMs": 300000
+    }
+  ],
+  "goalMilestones": ["tipos-ok", "testes-ok"],
+  "goalProbes": ["typecheck", "tests"],
+  "steps": [
+    {
+      "key": "medir-tipos",
+      "label": "Rodar o typecheck e ler o codigo de saida",
+      "risk": "safe",
+      "yields": "tipos-ok",
+      "verify": ["typecheck"]
+    },
+    {
+      "key": "medir-testes",
+      "label": "Rodar a suite inteira e ler o codigo de saida",
+      "risk": "safe",
+      "requires": ["tipos-ok"],
+      "yields": "testes-ok",
+      "verify": ["tests"]
+    }
+  ]
+}

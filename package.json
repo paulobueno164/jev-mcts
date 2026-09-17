@@ -1,0 +1,42 @@
+{
+  "name": "jev-mcts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Busca em arvore com avaliacao tipada (TypeSafe Jev) e portao humano obrigatorio nas decisoes irreversiveis.",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "jev": "./dist/src/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "duel": "tsx --env-file-if-exists=.env examples/duel/run.ts",
+    "devtask": "tsx --env-file-if-exists=.env examples/devtask/run.ts",
+    "agent": "tsx --env-file-if-exists=.env src/cli/main.ts build",
+    "observe": "tsx --env-file-if-exists=.env src/cli/main.ts observe",
+    "calibrate": "tsx --env-file-if-exists=.env tools/calibrate.ts",
+    "ping": "tsx --env-file-if-exists=.env tools/jev-ping.ts",
+    "cli": "tsx --env-file-if-exists=.env src/cli/main.ts",
+    "check": "pnpm typecheck && pnpm test && tsx examples/duel/run.ts --scenarios 12 --iterations 200 --check && tsx examples/devtask/run.ts --check --no-journal"
+  },
+  "dependencies": {},
+  "optionalDependencies": {
+    "ai": "^7.0.105"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

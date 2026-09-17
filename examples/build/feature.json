@@ -1,0 +1,61 @@
+{
+  "name": "feature",
+  "goal": "Implementar a funcionalidade descrita em docs/feature.md com teste e typecheck verdes",
+  "budgetMs": 3600000,
+  "stepCap": 14,
+  "maxAttemptsPerStep": 2,
+  "probes": [
+    {
+      "id": "typecheck",
+      "label": "tsc -p tsconfig.json --noEmit",
+      "command": "npx",
+      "args": ["tsc", "-p", "tsconfig.json", "--noEmit"],
+      "timeoutMs": 300000
+    },
+    {
+      "id": "tests",
+      "label": "vitest run",
+      "command": "npx",
+      "args": ["vitest", "run"],
+      "timeoutMs": 600000
+    }
+  ],
+  "goalMilestones": ["plano", "codigo", "coberto"],
+  "goalProbes": ["typecheck", "tests"],
+  "steps": [
+    {
+      "key": "mapear",
+      "label": "Mapear os arquivos afetados e escrever o plano em docs/plano.md",
+      "risk": "safe",
+      "yields": "plano",
+      "prompt": "Objetivo: {goal}\n\nNAO altere codigo neste passo. Leia o repositorio, identifique os arquivos que precisam mudar e escreva um plano curto em docs/plano.md: um bloco por arquivo, dizendo o que muda e por que. Se algo no objetivo estiver ambiguo, escreva a duvida no plano em vez de escolher por conta propria."
+    },
+    {
+      "key": "implementar",
+      "label": "Implementar o plano",
+      "risk": "reversible",
+      "requires": ["plano"],
+      "yields": "codigo",
+      "verify": ["typecheck"],
+      "prompt": "Objetivo: {goal}\nMarcos ja observados: {milestones}\n\nLeia docs/plano.md e implemente-o. O typecheck TEM de ficar verde: `npx tsc -p tsconfig.json --noEmit`. Nao mexa em teste neste passo.\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "cobrir",
+      "label": "Escrever o teste que cobre a mudanca",
+      "risk": "reversible",
+      "requires": ["codigo"],
+      "yields": "coberto",
+      "verify": ["typecheck", "tests"],
+      "prompt": "Objetivo: {goal}\nMarcos ja observados: {milestones}\n\nEscreva o teste que falharia sem a mudanca do passo anterior. Rode `npx vitest run` e deixe a suite inteira verde. Nao afrouxe assercao existente para fazer teste passar.\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "revisar",
+      "label": "Revisar o proprio diff e corrigir o que estiver sobrando",
+      "risk": "reversible",
+      "requires": ["coberto"],
+      "yields": "revisado",
+      "verify": ["typecheck", "tests"],
+      "prompt": "Releia o diff inteiro do trabalho. Remova codigo morto, console.log e comentario obvio. Se encontrar um defeito real, corrija; se nao encontrar, nao invente mudanca. Typecheck e suite continuam tendo de ficar verdes.\n\n{failing}"
+    }
+  ]
+}
