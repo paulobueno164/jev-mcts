@@ -13,6 +13,7 @@ export type JournalEventType =
   | 'agent.run'
   | 'probe.observe'
   | 'budget.breach'
+  | 'evaluator.unavailable'
   | 'run.end';
 
 export interface JournalEvent {

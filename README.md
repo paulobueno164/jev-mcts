@@ -10,7 +10,7 @@ e portão humano obrigatório nas decisões que não dá para desfazer.**
 [![CI](https://github.com/paulobueno164/jev-mcts/actions/workflows/ci.yml/badge.svg)](https://github.com/paulobueno164/jev-mcts/actions/workflows/ci.yml)
 [![Node 22+](https://img.shields.io/badge/node-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Testes](https://img.shields.io/badge/testes-152%20em%209%20arquivos-success)](#testes)
+[![Testes](https://img.shields.io/badge/testes-162%20em%2010%20arquivos-success)](#testes)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![TypeSafe Jev](https://img.shields.io/badge/TypeSafe-Jev-purple.svg)](https://vercel.com/changelog/typesafe-ai-jev-now-available-on-ai-gateway)
 
@@ -487,7 +487,7 @@ jev-mcts/
 ├── tools/
 │   ├── calibrate.ts       # ajusta a curva contra verdade exata
 │   └── jev-ping.ts        # uma chamada real a cada forma do Jev
-└── test/                  # 152 testes, 9 arquivos, nenhum fala com a rede
+└── test/                  # 162 testes, 10 arquivos, nenhum fala com a rede
 ```
 
 ---
@@ -504,7 +504,7 @@ nada fecha com "parece melhor":
 | o que roda | o que tem de valer |
 |---|---|
 | `tsc --noEmit` | zero erros |
-| `vitest run` | 152 testes, 9 arquivos |
+| `vitest run` | 162 testes, 10 arquivos |
 | `pnpm duel --check` | `mcts 12/12 > guloso 1/12` |
 | `pnpm devtask --check` | o portão irreversível disparou e nada foi publicado sem aprovação |
 

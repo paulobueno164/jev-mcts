@@ -21,6 +21,7 @@
     "observe": "tsx --env-file-if-exists=.env src/cli/main.ts observe",
     "calibrate": "tsx --env-file-if-exists=.env tools/calibrate.ts",
     "ping": "tsx --env-file-if-exists=.env tools/jev-ping.ts",
+    "ramos": "tsx tools/ramos.ts",
     "cli": "tsx --env-file-if-exists=.env src/cli/main.ts",
     "check": "pnpm typecheck && pnpm test && tsx examples/duel/run.ts --scenarios 12 --iterations 200 --check && tsx examples/devtask/run.ts --check --no-journal"
   },

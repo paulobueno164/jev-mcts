@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createJournal } from '../core/journal.js';
 import { loadCache, withCache } from '../evaluator/cache.js';
+import { withRetry } from '../evaluator/resilient.js';
 import { loadCalibration } from '../evaluator/calibration.js';
 import { createJevEvaluator, jevCredentialsPresent } from '../evaluator/jev.js';
 import { createScriptedEvaluator } from '../evaluator/scripted.js';
@@ -133,7 +134,17 @@ export async function buildCommand(args: Args): Promise<number> {
           ...(args.has('no-zdr') ? { zeroDataRetention: false } : {}),
         })
       : createScriptedEvaluator({ id: `plano:${spec.name}`, heuristic: workspaceHeuristic(spec) });
-  const evaluator = withCache(base, loadCache(paths.cache));
+  // Ordem importa: o cache fica POR FORA da repeticao, entao um acerto de cache
+  // nao paga espera nenhuma, e so a chamada que vai de verdade a rede e que
+  // ganha backoff.
+  const resiliente = withRetry(base, {
+    attempts: args.num('eval-attempts', 4),
+    onRetry: ({ method, attempt, delayMs }) =>
+      process.stdout.write(
+        `  ! avaliador falhou em ${method} (tentativa ${attempt}); repetindo em ${Math.round(delayMs / 1000)}s\n`,
+      ),
+  });
+  const evaluator = withCache(resiliente, loadCache(paths.cache));
   const calibration = loadCalibration(args.str('calibration', 'data/calibration.json'), base.id);
 
   const journal = createJournal(args.has('no-journal') ? null : nextJournalPath(paths.journal));
@@ -221,6 +232,13 @@ export async function buildCommand(args: Args): Promise<number> {
         'o que aparece como concedido veio de medicao, nao de trabalho feito.\n',
     );
     return EXIT.continue;
+  }
+  if (result.stopped === 'evaluator-unavailable') {
+    process.stdout.write(
+      '\navaliador fora do ar. A sessao esta salva e o que ja ficou verde continua verde;\n' +
+        `re-chame para continuar de onde parou:\n  jev build --spec ${specPath} --session ${paths.session}\n`,
+    );
+    return EXIT.needsHuman;
   }
   if (result.stopped === 'aborted' || result.stopped === 'blocked') {
     process.stdout.write(

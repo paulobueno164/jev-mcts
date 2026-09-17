@@ -3,7 +3,14 @@ import type { Journal } from '../core/journal.js';
 import type { Environment } from '../env/environment.js';
 import type { Evaluator } from '../evaluator/evaluator.js';
 import { identityCalibration, type Calibration } from '../evaluator/calibration.js';
-import { DEFAULT_SEARCH, search, type SearchConfig, type SearchStats } from '../search/mcts.js';
+import { EvaluatorUnavailableError } from '../evaluator/resilient.js';
+import {
+  DEFAULT_SEARCH,
+  search,
+  type SearchConfig,
+  type SearchOutcome,
+  type SearchStats,
+} from '../search/mcts.js';
 import { applyGates, DEFAULT_GATES, type GateConfig, type GateVerdict } from './gates.js';
 import { haltingPort, type HumanDecision, type HumanPort } from './human.js';
 import { createOverrideStore, stateKeyOf, type OverrideStore } from './overrides.js';
@@ -50,7 +57,13 @@ export interface StepRecord {
   readonly applied: Action | null;
 }
 
-export type StopReason = 'terminal' | 'max-steps' | 'aborted' | 'blocked';
+export type StopReason =
+  | 'terminal'
+  | 'max-steps'
+  | 'aborted'
+  | 'blocked'
+  /** O avaliador caiu e nao voltou. Parada limpa: o que ja foi feito continua feito. */
+  | 'evaluator-unavailable';
 
 export interface RunResult<S> {
   readonly goal: string;
@@ -171,18 +184,37 @@ export async function run<S>(initial: S, options: OrchestratorOptions<S>): Promi
     for (let attempt = 1; ; attempt++) {
       const priorOverride = overrides.priorFor(stateKey);
       const banned = overrides.lookup(stateKey)?.banned ?? [];
-      const outcome = await search(state, {
-        env,
-        evaluator: options.evaluator,
-        calibration,
-        ...(journal ? { journal } : {}),
-        config: {
-          ...config,
-          seed: `${String(config.seed)}:${step}:${attempt}`,
-          ...(priorOverride ? { priorOverride } : {}),
-          ...(banned.length > 0 ? { bannedAtRoot: banned } : {}),
-        },
-      });
+      // O avaliador e rede: 429, queda de provedor e timeout acontecem no meio de
+      // uma corrida longa. Deixar isso subir como excecao nao tratada mata a
+      // corrida inteira e leva junto o que ja estava feito — que e exatamente o
+      // oposto do que a secao 8 do CLAUDE.md exige de um limite estourado.
+      let outcome: SearchOutcome<S>;
+      try {
+        outcome = await search(state, {
+          env,
+          evaluator: options.evaluator,
+          calibration,
+          ...(journal ? { journal } : {}),
+          config: {
+            ...config,
+            seed: `${String(config.seed)}:${step}:${attempt}`,
+            ...(priorOverride ? { priorOverride } : {}),
+            ...(banned.length > 0 ? { bannedAtRoot: banned } : {}),
+          },
+        });
+      } catch (error) {
+        // So o avaliador fora do ar vira parada limpa. Qualquer outra excecao e
+        // bug, e bug tem que estourar.
+        if (!(error instanceof EvaluatorUnavailableError)) throw error;
+        journal?.write('evaluator.unavailable', {
+          step,
+          attempt,
+          evaluator: options.evaluator.id,
+          message: error.message,
+        });
+        halt = 'evaluator-unavailable';
+        break;
+      }
 
       totals.evaluatorCalls += outcome.stats.evaluatorCalls;
       totals.inputTokens += outcome.stats.budget.inputTokens;

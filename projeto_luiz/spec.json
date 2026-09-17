@@ -1,0 +1,199 @@
+{
+  "name": "b3-market-oracle",
+  "goal": "Construir o registro institucional de perguntas e o tensor de extracao do B3 Market Oracle conforme CONTRATO.md, com as tres fases de validar.mjs verdes",
+  "cwd": "projeto_luiz",
+  "budgetMs": 7200000,
+  "stepCap": 12,
+  "maxAttemptsPerStep": 2,
+  "probes": [
+    {
+      "id": "prova-de-vida",
+      "label": ".prova-de-vida traz o sha256 que so quem executou consegue",
+      "command": "node",
+      "args": [
+        "-e",
+        "const c=require('node:crypto'),f=require('node:fs');let a='';try{a=f.readFileSync('.prova-de-vida','utf8').trim().toLowerCase()}catch(e){console.log('sem .prova-de-vida: o agente nao executou comando nenhum');process.exit(1)}const h=c.createHash('sha256').update(f.readFileSync('tools/validar.mjs')).digest('hex');if(a!==h){console.log('.prova-de-vida nao bate com o sha256 de tools/validar.mjs');console.log('esperado: '+h);console.log('veio:     '+a.slice(0,80));process.exit(1)}process.exit(0)"
+      ],
+      "timeoutMs": 60000
+    },
+    {
+      "id": "instrumento",
+      "label": "sha256 de validar.mjs, CONTRATO.md e PROMPT.md inalterados",
+      "command": "node",
+      "args": [
+        "-e",
+        "const c=require('node:crypto'),f=require('node:fs');const m={'tools/validar.mjs':'bd31ff9ab18ec260ccb3166d990de594ee983f8a03b11a07085032abca42b405','CONTRATO.md':'b555d97cc40bd666706250d4fb1b3c5b52f4c7625017d275e5f4cc3602618088','PROMPT.md':'c65131ff61843df0d7ef6952c107b24d79c4fcfe2ced8ba1b6ca5c603125cb43'};let mau=0;for(const k of Object.keys(m)){let h=null;try{h=c.createHash('sha256').update(f.readFileSync(k)).digest('hex')}catch(e){};if(h!==m[k]){mau++;console.log('INSTRUMENTO ALTERADO OU SUMIDO: '+k)}}process.exit(mau?1:0)"
+      ],
+      "timeoutMs": 60000
+    },
+    {
+      "id": "heads",
+      "label": "node tools/validar.mjs --fase heads",
+      "command": "node",
+      "args": [
+        "tools/validar.mjs",
+        "--fase",
+        "heads"
+      ],
+      "timeoutMs": 120000
+    },
+    {
+      "id": "registro",
+      "label": "node tools/validar.mjs --fase registry",
+      "command": "node",
+      "args": [
+        "tools/validar.mjs",
+        "--fase",
+        "registry"
+      ],
+      "timeoutMs": 120000
+    },
+    {
+      "id": "vetor",
+      "label": "node tools/validar.mjs --fase vetor",
+      "command": "node",
+      "args": [
+        "tools/validar.mjs",
+        "--fase",
+        "vetor"
+      ],
+      "timeoutMs": 120000
+    }
+  ],
+  "goalMilestones": [
+    "taxonomia",
+    "registro-completo",
+    "tensor"
+  ],
+  "goalProbes": [
+    "instrumento",
+    "heads",
+    "registro",
+    "vetor"
+  ],
+  "steps": [
+    {
+      "key": "ambiente",
+      "label": "Provar que o agente executa comandos, nao so escreve arquivos",
+      "risk": "reversible",
+      "yields": "pode-executar",
+      "verify": [
+        "prova-de-vida"
+      ],
+      "timeoutMs": 300000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nPASSO ZERO. Antes de escrever qualquer artefato, prove que voce consegue EXECUTAR.\n\nRode este comando e grave a saida em .prova-de-vida:\n\n  node -e \"const c=require('node:crypto'),f=require('node:fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync('tools/validar.mjs')).digest('hex'))\" > .prova-de-vida\n\nDepois confira com node que .prova-de-vida tem exatamente 64 caracteres hexadecimais.\nNao invente o conteudo: o valor so existe se o comando rodou de verdade.\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "taxonomia-larga",
+      "label": "Taxonomia LARGA: 12 a 16 cabecas gordas (orcamento 20-28 cada)",
+      "risk": "reversible",
+      "requires": [
+        "pode-executar"
+      ],
+      "yields": "taxonomia",
+      "verify": [
+        "instrumento",
+        "heads"
+      ],
+      "timeoutMs": 1500000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia LARGA: poucas cabecas, cada uma gorda.\n\nMire 12 a 16 cabecas com orcamento de 20 a 28 dimensoes cada. Cada cabeca vira um tema\ngrande (materialidade, governanca, litigio, tributos, concorrencia...) com muitas\nperguntas dentro. Vantagem: menos fronteiras para justificar como ortogonais. Risco:\numa cabeca gorda demais vira balaio e o porqueOrtogonal fica vago.\n\nCada cabeca e um eixo ORTOGONAL de percepcao sobre um evento corporativo brasileiro\n(fato relevante da CVM, comunicado ao mercado, aviso aos acionistas, release de\nresultados, decisao do CADE, ato do DOU, decisao judicial ou fiscal). Ortogonal quer\ndizer: duas cabecas nao podem responder a mesma pergunta com palavras diferentes.\n\"Materialidade\" mede TAMANHO; \"direcao\" mede SINAL; \"prazo\" mede QUANDO;\n\"credibilidade\" mede QUANTO SE PODE CONFIAR NO QUE FOI DITO.\n\nO campo porqueOrtogonal e o mais importante do arquivo: diz o que a cabeca NAO mede,\ncitando as vizinhas de que poderia ser confundida. Minimo 40 caracteres.\n\nRegras da sonda (CONTRATO.md, artefato 1): version 1; entre 10 e 40 cabecas; id\nkebab-case unico; dominio em B3, CVM, DOU, CADE, JUDICIARIO, FISCAL, EMISSOR, MERCADO;\norcamentoDimensoes inteiro maior ou igual a 4; SOMA dos orcamentos entre 300 e 340.\n\nAntes de terminar, rode: node tools/validar.mjs --fase heads\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "taxonomia-densa",
+      "label": "Taxonomia DENSA: 26 a 34 cabecas magras (orcamento 8-12 cada)",
+      "risk": "reversible",
+      "requires": [
+        "pode-executar"
+      ],
+      "yields": "taxonomia",
+      "verify": [
+        "instrumento",
+        "heads"
+      ],
+      "timeoutMs": 1500000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia DENSA: muitas cabecas, cada uma magra.\n\nMire 26 a 34 cabecas com orcamento de 8 a 12 dimensoes cada. Cada cabeca e um recorte\nestreito e afiado (prazo-de-efeito, reversibilidade, quem-assina, exposicao-cambial...).\nVantagem: ortogonalidade fica facil de defender por cabeca. Risco: e mais dificil somar\nexatamente o orcamento total, e cabecas vizinhas se parecem.\n\nCada cabeca e um eixo ORTOGONAL de percepcao sobre um evento corporativo brasileiro\n(fato relevante da CVM, comunicado ao mercado, aviso aos acionistas, release de\nresultados, decisao do CADE, ato do DOU, decisao judicial ou fiscal). Ortogonal quer\ndizer: duas cabecas nao podem responder a mesma pergunta com palavras diferentes.\n\"Materialidade\" mede TAMANHO; \"direcao\" mede SINAL; \"prazo\" mede QUANDO;\n\"credibilidade\" mede QUANTO SE PODE CONFIAR NO QUE FOI DITO.\n\nO campo porqueOrtogonal e o mais importante do arquivo: diz o que a cabeca NAO mede,\ncitando as vizinhas de que poderia ser confundida. Minimo 40 caracteres.\n\nRegras da sonda (CONTRATO.md, artefato 1): version 1; entre 10 e 40 cabecas; id\nkebab-case unico; dominio em B3, CVM, DOU, CADE, JUDICIARIO, FISCAL, EMISSOR, MERCADO;\norcamentoDimensoes inteiro maior ou igual a 4; SOMA dos orcamentos entre 300 e 340.\n\nAntes de terminar, rode: node tools/validar.mjs --fase heads\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "registro-gerador",
+      "label": "Registro via GERADOR: escrever _gerar.mjs e roda-lo com node",
+      "risk": "reversible",
+      "requires": [
+        "taxonomia"
+      ],
+      "yields": "registro-completo",
+      "verify": [
+        "instrumento",
+        "heads",
+        "registro"
+      ],
+      "timeoutMs": 2400000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia GERADOR: escreva _gerar.mjs e rode com node.\n\nPonha as perguntas de cada cabeca em listas dentro do script e deixe o gerador calcular\ndimensoes, montar os ids e somar os orcamentos. A aritmetica e o que mais reprova aqui, e\num gerador nao erra soma. Rode node _gerar.mjs para produzir registry/questions.json.\n\nCada pergunta e UMA chamada discriminativa do avaliador, que tem exatamente tres formas:\n  boolean -> probabilidade. 1 dimensao.\n  score   -> nivel numa escala ordenada (3 niveis ou mais). 1 dimensao.\n  choice  -> distribuicao sobre opcoes (2 ou mais). opcoes.length dimensoes.\nO campo dimensoes tem de bater com a forma. Declarar errado reprova.\n\nRegras da sonda (CONTRATO.md, artefato 2): id <head>.<slug> com slug kebab-case\nDESCRITIVO de 3+ caracteres (\".1\" reprova); head existente; pergunta com 25+ caracteres\nterminando em ?; nenhuma pergunta repetida; justificativa com 20+ caracteres; fonte no\nenum dos dominios; score com 3+ niveis; choice com 2+ opcoes distintas; soma por cabeca\na no maximo 20% do orcamento dela; total entre 300 e 340.\n\nMISTURA DE FORMAS, e onde mais se reprova: no maximo 70% boolean, pelo menos 12% score,\npelo menos 6% choice. Um registro so de boolean responde \"houve impacto?\" e nunca \"de\nque tamanho?\".\n\nAntes de terminar, rode: node tools/validar.mjs --fase registry\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "registro-direto",
+      "label": "Registro DIRETO: escrever questions.json a mao, de uma vez",
+      "risk": "reversible",
+      "requires": [
+        "taxonomia"
+      ],
+      "yields": "registro-completo",
+      "verify": [
+        "instrumento",
+        "heads",
+        "registro"
+      ],
+      "timeoutMs": 2400000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia DIRETA: escreva registry/questions.json a mao, de uma vez.\n\nSem intermediario: o arquivo final, completo, num JSON so. Vantagem: o que voce le e o\nque a sonda le, sem uma camada de codigo entre os dois. Risco: somar as dimensoes por\ncabeca de cabeca e errado com frequencia — confira rodando o validador.\n\nCada pergunta e UMA chamada discriminativa do avaliador, que tem exatamente tres formas:\n  boolean -> probabilidade. 1 dimensao.\n  score   -> nivel numa escala ordenada (3 niveis ou mais). 1 dimensao.\n  choice  -> distribuicao sobre opcoes (2 ou mais). opcoes.length dimensoes.\nO campo dimensoes tem de bater com a forma. Declarar errado reprova.\n\nRegras da sonda (CONTRATO.md, artefato 2): id <head>.<slug> com slug kebab-case\nDESCRITIVO de 3+ caracteres (\".1\" reprova); head existente; pergunta com 25+ caracteres\nterminando em ?; nenhuma pergunta repetida; justificativa com 20+ caracteres; fonte no\nenum dos dominios; score com 3+ niveis; choice com 2+ opcoes distintas; soma por cabeca\na no maximo 20% do orcamento dela; total entre 300 e 340.\n\nMISTURA DE FORMAS, e onde mais se reprova: no maximo 70% boolean, pelo menos 12% score,\npelo menos 6% choice. Um registro so de boolean responde \"houve impacto?\" e nunca \"de\nque tamanho?\".\n\nAntes de terminar, rode: node tools/validar.mjs --fase registry\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "registro-por-cabeca",
+      "label": "Registro POR PARTES: um JSON por cabeca e um _juntar.mjs",
+      "risk": "reversible",
+      "requires": [
+        "taxonomia"
+      ],
+      "yields": "registro-completo",
+      "verify": [
+        "instrumento",
+        "heads",
+        "registro"
+      ],
+      "timeoutMs": 2400000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia POR PARTES: um arquivo por cabeca, depois junte.\n\nEscreva registry/parciais/<id-da-cabeca>.json com as perguntas daquela cabeca, uma cabeca\nde cada vez, e depois um _juntar.mjs que le a pasta e monta registry/questions.json.\nVantagem: cada arquivo cabe numa escrita e voce pode validar o total a cada junção.\nRisco: uma cabeca esquecida some sem barulho — confira a contagem no fim.\n\nCada pergunta e UMA chamada discriminativa do avaliador, que tem exatamente tres formas:\n  boolean -> probabilidade. 1 dimensao.\n  score   -> nivel numa escala ordenada (3 niveis ou mais). 1 dimensao.\n  choice  -> distribuicao sobre opcoes (2 ou mais). opcoes.length dimensoes.\nO campo dimensoes tem de bater com a forma. Declarar errado reprova.\n\nRegras da sonda (CONTRATO.md, artefato 2): id <head>.<slug> com slug kebab-case\nDESCRITIVO de 3+ caracteres (\".1\" reprova); head existente; pergunta com 25+ caracteres\nterminando em ?; nenhuma pergunta repetida; justificativa com 20+ caracteres; fonte no\nenum dos dominios; score com 3+ niveis; choice com 2+ opcoes distintas; soma por cabeca\na no maximo 20% do orcamento dela; total entre 300 e 340.\n\nMISTURA DE FORMAS, e onde mais se reprova: no maximo 70% boolean, pelo menos 12% score,\npelo menos 6% choice. Um registro so de boolean responde \"houve impacto?\" e nunca \"de\nque tamanho?\".\n\nAntes de terminar, rode: node tools/validar.mjs --fase registry\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "tensor-derivado",
+      "label": "Tensor DERIVADO: extrair.mjs le o registry no import",
+      "risk": "reversible",
+      "requires": [
+        "registro-completo"
+      ],
+      "yields": "tensor",
+      "verify": [
+        "instrumento",
+        "heads",
+        "registro",
+        "vetor"
+      ],
+      "timeoutMs": 1500000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia DERIVADA: extrair.mjs le registry/questions.json no import e deriva tudo.\n\nNenhum numero escrito a mao no codigo. Vantagem: acrescentar uma pergunta ao registro\natualiza o vetor sozinho. Risco: o arquivo depende do caminho relativo do registry.\n\nExporte exatamente duas funcoes, em ESM puro (.mjs, sem dependencia externa):\n\n  export function nomesDasDimensoes()      // string[] de tamanho D, ordem canonica, sem repeticao\n  export function extrairVetor(respostas)  // Float64Array de tamanho D\n\nrespostas e { idDaPergunta: resposta }:\n  boolean -> { probabilidade } em [0,1]\n  score   -> { nivel } inteiro, normalizado por niveis.length - 1\n  choice  -> { distribuicao }, uma posicao por opcao, na ordem de opcoes\n\nPergunta AUSENTE vira o neutro (0.5 boolean, 0.5 score, uniforme choice), nunca NaN e\nnunca excecao. Valor fora de [0,1] e grampeado. Sem Math.random, sem Date.now.\n\nDocumente no topo, em comentario, a ordem canonica e o que cada neutro significa.\n\nAntes de terminar, rode: node tools/validar.mjs --fase vetor\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    },
+    {
+      "key": "tensor-materializado",
+      "label": "Tensor MATERIALIZADO: um gerador emite extrair.mjs com a ordem fixada",
+      "risk": "reversible",
+      "requires": [
+        "registro-completo"
+      ],
+      "yields": "tensor",
+      "verify": [
+        "instrumento",
+        "heads",
+        "registro",
+        "vetor"
+      ],
+      "timeoutMs": 1500000,
+      "prompt": "Objetivo: {goal}\n\nVoce trabalha dentro de projeto_luiz/. Leia PROMPT.md (o enunciado original, em prosa) e\nCONTRATO.md (a forma exata da entrega). CONTRATO.md manda.\n\nQuem decide se voce terminou e tools/validar.mjs, e so ele. Voce TEM permissao para\nexecutar node (Bash(node:*) esta liberada): nao peca aprovacao, rode. Cada reprovacao dele\nvem com o motivo escrito; corrija e rode de novo ate sair VALIDACAO OK. Terminar sem ter\nrodado o validador nao conta como terminar.\n\nNAO edite tools/validar.mjs, spec.json, CONTRATO.md nem PROMPT.md: uma sonda confere o\nsha256 desses arquivos e reprova a tarefa inteira se algum mudar.\n\nNao escreva cliente de rede, scraper nem nada que fale com a internet.\n\nMarcos ja conquistados: {milestones}\n\nEstrategia MATERIALIZADA: um gerador escreve extrair.mjs com a ordem ja fixada dentro.\n\nEscreva _gerar-extrator.mjs que le o registro e EMITE src/extrair.mjs com a lista de\ndimensoes materializada no proprio codigo. Vantagem: o extrator nao le disco em runtime e\na ordem canonica fica congelada e auditavel. Risco: mudou o registro, tem de regerar.\n\nExporte exatamente duas funcoes, em ESM puro (.mjs, sem dependencia externa):\n\n  export function nomesDasDimensoes()      // string[] de tamanho D, ordem canonica, sem repeticao\n  export function extrairVetor(respostas)  // Float64Array de tamanho D\n\nrespostas e { idDaPergunta: resposta }:\n  boolean -> { probabilidade } em [0,1]\n  score   -> { nivel } inteiro, normalizado por niveis.length - 1\n  choice  -> { distribuicao }, uma posicao por opcao, na ordem de opcoes\n\nPergunta AUSENTE vira o neutro (0.5 boolean, 0.5 score, uniforme choice), nunca NaN e\nnunca excecao. Valor fora de [0,1] e grampeado. Sem Math.random, sem Date.now.\n\nDocumente no topo, em comentario, a ordem canonica e o que cada neutro significa.\n\nAntes de terminar, rode: node tools/validar.mjs --fase vetor\n\nTentativa {attempt}. Saida das sondas que reprovaram ate agora:\n{failing}"
+    }
+  ]
+}

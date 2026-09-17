@@ -97,6 +97,30 @@ corrida que trava, nem uma que segue gastando.
 
 Acerto de cache custa zero: não consome chamada, token nem dólar.
 
+## 8.1 Avaliador que cai é parada, não crash
+
+O avaliador é rede: 429, provedor fora do ar e timeout acontecem no meio de uma
+corrida de quarenta minutos. `withRetry` repete o que é transitório com backoff
+exponencial e converte o resto em `EvaluatorUnavailableError` — um tipo só, que o
+orquestrador transforma em `stoppedBy: 'evaluator-unavailable'`, sessão salva e
+código 4. Exceção não tratada aqui mata a corrida e **leva o progresso junto**,
+que é o oposto do que a seção 8 exige.
+
+Credencial inválida não é transitória. Repetir um 401 quatro vezes só atrasa o
+diagnóstico em vinte segundos.
+
+Sem jitter, de propósito: `Math.random` é proibido em `src/` e uma espera que
+muda a cada corrida quebraria o replay.
+
+## 8.2 Spec com uma ação legal por estado não é busca
+
+`pnpm ramos <spec.json>` conta quantas ações **legais** a busca tem em cada
+decisão. Uma spec encadeada, em que cada passo exige o marco do anterior, deixa
+exatamente uma ação legal por estado: a MCTS gasta as 120 iterações num galho só
+e ainda imprime `visitas=120 margem=1.000` — margem cheia porque não havia
+segundo colocado. No relatório isso é indistinguível de exploração de verdade, e
+por isso tem instrumento. `pnpm ramos` sai com 1 quando o maior leque é 1.
+
 ## 9. Custo real é latência, não dólar
 
 $0,042 por milhão de tokens de entrada torna o dinheiro irrelevante em qualquer
@@ -110,6 +134,7 @@ pnpm check      # typecheck + suite + a asserção do duelo
 pnpm duel       # bancada com verdade conhecida
 pnpm devtask    # fluxo de orquestração com humano no laço
 pnpm calibrate  # curva de confiabilidade contra verdade exata
+pnpm ramos <spec.json>   # quantas acoes legais a busca tem em cada decisao
 pnpm cli replay runs/<arquivo>.ndjson
 
 pnpm observe --spec examples/build/selfcheck.json   # só mede o repositório

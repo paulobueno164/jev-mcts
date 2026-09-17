@@ -1,0 +1,8 @@
+# O que o agente PRODUZ nao entra no repositorio: e saida de corrida, nao fonte.
+# O que entra e o contrato, o instrumento e a spec — o suficiente para qualquer
+# um reproduzir a corrida do zero com `tools/rodar.cmd`.
+registry/*.json
+src/*.mjs
+_gerar*.mjs
+_juntar*.mjs
+.prova-de-vida
