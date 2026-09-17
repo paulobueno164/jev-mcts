@@ -1,12 +1,57 @@
+<div align="center">
+
 # jev-mcts
 
-Busca em árvore (MCTS/PUCT) com avaliação tipada do [TypeSafe Jev](https://typesafe.ai/)
-e portão humano obrigatório nas decisões que não dá para desfazer.
+**Busca em árvore (MCTS/PUCT) com avaliação tipada do [TypeSafe Jev](https://typesafe.ai/)
+e portão humano obrigatório nas decisões que não dá para desfazer.**
+
+*A árvore supõe. A sonda mede. Só a sonda concede.*
+
+[![CI](https://github.com/paulobueno164/jev-mcts/actions/workflows/ci.yml/badge.svg)](https://github.com/paulobueno164/jev-mcts/actions/workflows/ci.yml)
+[![Node 22+](https://img.shields.io/badge/node-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Testes](https://img.shields.io/badge/testes-152%20em%209%20arquivos-success)](#testes)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![TypeSafe Jev](https://img.shields.io/badge/TypeSafe-Jev-purple.svg)](https://vercel.com/changelog/typesafe-ai-jev-now-available-on-ai-gateway)
+
+</div>
 
 É uma releitura do [lhemerly/mcts-agent](https://github.com/lhemerly/mcts-agent) com
 uma correção no centro: **a árvore só tem direito a ir fundo onde existe um
 simulador.** Onde não existe, ela é rasa, é rotulada como especulativa, e para
 na mesa de um humano.
+
+---
+
+## O laço, em um diagrama
+
+```mermaid
+flowchart TD
+    A["Objetivo + estado medido"] --> B{"MCTS / PUCT<br/>escolhe UM passo"}
+    B -->|"prior, valor, poda"| J["Jev<br/>screen · priors · value"]
+    J -.->|"estimativa, nunca estado"| B
+    B --> G{"Portão<br/>classe de risco"}
+    G -->|"irreversible"| H["Humano<br/>sem humano = PARA"]
+    G -->|"reversible / safe"| E["Executa<br/>claude -p · codex · script"]
+    H -->|"aprovou"| E
+    H -->|"recusou"| X["Proibição persistida"]
+    E --> C["claim<br/>(o que o agente diz)"]
+    E --> P["SONDAS<br/>código de saída = fato"]
+    C -.->|"vai para o journal,<br/>não decide nada"| L["Journal NDJSON"]
+    P -->|"todas verdes"| M["MARCO CONCEDIDO"]
+    P -->|"alguma vermelha"| R["nada concedido<br/>nova tentativa"]
+    M --> A
+    R --> A
+
+    style P fill:#1a7f37,color:#fff
+    style M fill:#1a7f37,color:#fff
+    style C fill:#9a6700,color:#fff
+    style H fill:#8250df,color:#fff
+    style X fill:#cf222e,color:#fff
+```
+
+O nó verde é o único que concede. O nó amarelo — o texto que o agente escreveu
+dizendo que deu tudo certo — vai para a auditoria e **não** decide nada.
 
 ---
 
@@ -373,6 +418,76 @@ falha silenciosa, a pior espécie.
 
 ---
 
+## Estrutura do projeto
+
+```
+jev-mcts/
+├── src/
+│   ├── core/              # tipos, RNG semeado, hash de conteúdo, orçamento, journal NDJSON
+│   ├── env/               # Environment: fidelity, actions, apply, reward, rollout
+│   ├── evaluator/
+│   │   ├── evaluator.ts   # as três formas fechadas: screen · priors · value
+│   │   ├── jev.ts         # adaptador do TypeSafe Jev via AI Gateway
+│   │   ├── scripted.ts    # avaliador determinista, offline, para teste e duelo
+│   │   ├── cache.ts       # memoização por hash; acerto custa zero
+│   │   └── calibration.ts # curva de confiabilidade, válida só para o modelo ajustado
+│   ├── search/mcts.ts     # PUCT + First-Play Urgency + alargamento progressivo
+│   ├── orchestration/
+│   │   ├── gates.ts       # portões; irreversível escala antes de qualquer limiar
+│   │   ├── human.ts       # portas: cli · auto-approve · halting
+│   │   ├── overrides.ts   # recusa vira proibição persistente
+│   │   └── orchestrator.ts
+│   ├── agent/             # o laço com um CLI externo
+│   │   ├── process.ts     # spawn sem shell; metacaractere de cmd.exe é recusado
+│   │   ├── probe.ts       # a sonda: código de saída é o fato
+│   │   ├── runner.ts      # claude -p · codex · template · dry (default)
+│   │   ├── workspace.ts   # env + executor: marco só por sonda verde
+│   │   └── session.ts     # estado, overrides, cache e journal retomáveis
+│   ├── cli/               # jev build · observe · replay · help
+│   └── report.ts          # toda linha carrega a procedência do valor
+├── examples/
+│   ├── duel/              # bancada com verdade conhecida
+│   ├── devtask/           # orquestração com humano no laço
+│   └── build/             # specs do laço com agente
+├── tools/
+│   ├── calibrate.ts       # ajusta a curva contra verdade exata
+│   └── jev-ping.ts        # uma chamada real a cada forma do Jev
+└── test/                  # 152 testes, 9 arquivos, nenhum fala com a rede
+```
+
+---
+
+## Testes
+
+```bash
+pnpm check
+```
+
+`check` é typecheck + suíte + **duas asserções de bancada**, porque no repositório
+nada fecha com "parece melhor":
+
+| o que roda | o que tem de valer |
+|---|---|
+| `tsc --noEmit` | zero erros |
+| `vitest run` | 152 testes, 9 arquivos |
+| `pnpm duel --check` | `mcts 12/12 > guloso 1/12` |
+| `pnpm devtask --check` | o portão irreversível disparou e nada foi publicado sem aprovação |
+
+Tudo offline. Nenhum teste fala com a rede: sem `AI_GATEWAY_API_KEY` o
+repositório inteiro roda com o avaliador `scripted`, que é determinista.
+
+Os testes que mais importam são os que ficariam vermelhos se o projeto perdesse
+a tese:
+
+- afrouxar **todos** os limiares ao mesmo tempo e verificar que a ação
+  irreversível continua escalando
+- o agente afirmar que deu certo, a sonda dizer que não, e o marco **não** ser
+  concedido
+- sonda que não consegue rodar (binário ausente) **não** contar como verde
+- `rollout()` lançar exceção em ambiente especulativo
+
+---
+
 ## Limites conhecidos
 
 - **A latência é a restrição, não o preço.** Uma busca de 300 iterações faz
@@ -404,3 +519,13 @@ falha silenciosa, a pior espécie.
 - [AI SDK Core — Evaluation](https://ai-sdk.dev/docs/ai-sdk-core/evaluation) · [referência de `experimental_evaluate`](https://ai-sdk.dev/docs/reference/ai-sdk-core/evaluate)
 - [lhemerly/mcts-agent](https://github.com/lhemerly/mcts-agent)
 - [Language Agent Tree Search (arXiv 2310.04406)](https://arxiv.org/abs/2310.04406)
+
+---
+
+## Licença
+
+[MIT](LICENSE).
+
+Releitura independente de [lhemerly/mcts-agent](https://github.com/lhemerly/mcts-agent)
+(MIT) — outra linguagem, outra arquitetura, nenhum arquivo copiado. O aviso
+original fica registrado no `LICENSE` por crédito.

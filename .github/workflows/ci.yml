@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Typecheck, suite e as asserções de bancada
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm check` = typecheck + suíte + o duelo com asserção (mcts 12/12 >
+      # guloso 1/12) + o portão irreversível. Nada aqui fala com a rede: sem
+      # AI_GATEWAY_API_KEY o repositório inteiro roda com o avaliador scripted.
+      - name: pnpm check
+        run: pnpm check
+
+      # O artefato publicado precisa conter o módulo do harness. Sem este passo,
+      # `dist/` pode sair sem `src/agent/` e o laço documentado no README quebra
+      # com código 2 — defeito que já aconteceu neste repositório.
+      - name: O binário construído responde
+        run: |
+          pnpm build
+          test -f dist/src/agent/probe.js
+          node dist/src/cli/main.js help | grep -q 'jev build'
