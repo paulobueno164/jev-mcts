@@ -77,6 +77,41 @@ Este repositório separa os dois regimes no tipo, não no comentário:
 uma transição inventada não é medição, e o código diz isso em vez de confiar em
 quem leu a documentação.
 
+### "Mas a profundidade não está travada em 2?"
+
+É a primeira pergunta de quem lê o código, e a resposta é **não — ela é travada
+em 2 só onde não existe simulador.** O teto é calculado assim
+([`mcts.ts:134`](src/search/mcts.ts#L134)):
+
+```ts
+const depthCap =
+  env.fidelity === 'speculative'
+    ? Math.min(config.maxDepth, config.speculativeMaxDepth)  // 2
+    : config.maxDepth;                                        // 24
+```
+
+Medido nos dois ambientes que acompanham o repositório:
+
+| ambiente | `fidelity` | `depthCap` | recortado? |
+|---|---|---|---|
+| `examples/duel` — partida com regra fechada | `grounded` | **24** | não |
+| `src/agent/workspace` — o laço com um CLI | `speculative` | **2** | sim |
+
+O duelo é onde a árvore vai fundo, e é onde ela ganha: **24/24 contra 1/24** do
+guloso, com jogos de 7 a 8 lances. Se o teto fosse 2 em todo lugar, esse número
+não existiria — busca de 2 plies não separa de um guloso.
+
+O laço do agente roda com teto 2 porque `apply()` ali é um **palpite**: ninguém
+sabe qual será o estado do repositório depois que o `claude -p` rodar, só dá para
+descobrir rodando. Empilhar 10 níveis de palpite sobre palpite produz uma árvore
+bonita e um número sem significado. Então a árvore é rasa, o relatório escreve
+`0/12 folhas medidas — tudo estimado`, e quem decide de verdade é a sonda.
+
+Isso é um **limite do ambiente, não do buscador**. No dia em que alguém escrever
+um `Environment` `grounded` para um repositório — um sandbox que aplique a
+mudança e devolva o estado real —, o mesmo código passa a buscar a 24 sem trocar
+uma linha do MCTS.
+
 ---
 
 ## O que mudou em relação ao mcts-agent
